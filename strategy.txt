@@ -1,0 +1,5 @@
+strategy
+
+resources to be crawled (mainly US stocks)
+
+http://finviz.com/
