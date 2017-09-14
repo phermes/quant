@@ -323,10 +323,13 @@ class stocks(quotes):
 
 
 s = stocks(xetra,verbose=True)
-#s.switch_isin('DE0005790430')
+s.switch_isin('JP3818000006')
 for _ in range(len(xetra)):
-    print(s.name)    
-    s.get_quote(find_splits=True,download=True)
+    print(s.name)
+    try:
+        s.get_quote(find_splits=True,download=True)
+    except:
+        pass
     s.switch_next()
 
     
