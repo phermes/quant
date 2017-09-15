@@ -135,11 +135,16 @@ class plotting:
             x=self.per_table['pe'],
             nbinsx=200)
 
-        trace8line = go.Scatter(y=[0,1],
+        
+        trace8line = go.Scatter(y=[0,50],
                                 x=[self.per_table['pe'][0],self.per_table['pe'][0]],
                                 mode='lines',
                                 name="Current P/E")
 
+
+
+
+        
         fig = plotly.tools.make_subplots(rows=4, cols=2)
 
         fig['layout'].update({'yaxis23': go.YAxis(

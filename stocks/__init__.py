@@ -73,7 +73,7 @@ class stock(quotes,fundamentals,algo,time,logging,plotting):
 
     def _update_tables(self):
         self._get_keyratios()
-        self._get_quote()
+        self.get_quote()
         
     def update_time(self,day):
         '''This function resets the data such that only the data known at the 

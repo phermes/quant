@@ -160,7 +160,7 @@ class algo:
             return True
         return False
     
-    def get_summary(self,save=False):
+    def get_summary(self,save=False,conservative=False):
         if self._no_fundamentals():
             return
         
@@ -171,7 +171,7 @@ class algo:
         self.equityratio()
         self.present_ebtmargin()
         self.dividend_growth()
-        self.get_fair_price()
+        self.get_fair_price(conservative=conservative)
         self._get_all_pe()
         self.get_fair_price_from_pe()
         
@@ -212,12 +212,15 @@ class algo:
 
         return fairprice
 
-    def get_fair_price(self):
+    def get_fair_price(self, conservative=False):
         _low_fair_price  = self._fair_price(holdduration=10,interest=0.02,growth=0.0)
         _high_fair_price = self._fair_price(holdduration=10,interest=0.02,growth=None)    
         _current_price   = self.quote[self.quote.date==self.quote.date.max()]['close'].values[0]
         
         _fairprice       = np.array([_low_fair_price, _high_fair_price]).mean()
+        if conservative:
+            _fairprice       = _low_fair_price
+
         
         self.fairprice   = _fairprice
         self.price       = _current_price
