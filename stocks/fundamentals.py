@@ -69,7 +69,7 @@ class fundamentals:
         _quotecur    = self.quote['currency'].unique()
         _keyratiocur = self.keyratios['currency'].unique()
         if _quotecur != _keyratiocur:
-            self._error_message('Quote and keyratio table not of the same currency')
+            self.error_message('Quote and keyratio table not of the same currency')
             self.per_table = None
             self.per_cdf   = None
             return 

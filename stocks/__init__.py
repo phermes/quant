@@ -35,45 +35,60 @@ class time:
 
 
 class stock(quotes,fundamentals,algo,time,logging,plotting):
-    def __init__(self,stocklist,index=0,ISIN=None,verbose=False):
-        
-        self._initialize_algo()
-        
-        self.list    = stocklist
-        self.verbose = verbose
+    '''Base class to handle stocks'''
 
-        if ISIN:
-            self.switch_isin(ISIN)
-        else:
-            self.switch_index(index)
-        self._update_tables()
-            
+    def __init__(self,verbose=False):
+        self.get_stocklist()          # load the list of stocks from the database
+        self._initialize_algo()       # set all parameters of the algorithm to the default value
+        self.verbose = verbose
+        self.end     = False    
+
+        self.switch_index(0)          # starting point
+        self._update_tables()         # initialize the tables
+
+    def get_stocklist(self):
+        '''Load the stock list from the database'''
+        cnx        = sqlite3.connect('database/stocks_main.db')
+        xetra      = pd.read_sql("SELECT * FROM XETRA;", cnx)
+        self.list  = xetra 
+
+    def reset(self):
+        '''Reset variables'''
+        dic = vars(self)
+        for i in dic.keys():
+            if i in ['verbose', 'end', 'list']:
+                continue
+            dic[i] = None
+        
     def switch_isin(self,isin):
+        '''Switch to a stock based on the ISIN'''
+        self.reset()
         df         = self.list[self.list.ISIN==isin]
         self.index = df.index[0]
-        self.name, self.isin, self.ticker = np.array(df)[0]
+        self.name, self.isin, self.ticker, self.financial = np.array(df)[0]
         self._update_tables()
         self._initialize_algo()
         
-        
     def switch_index(self,index):
+        '''Switch to stock based on the index'''
+        self.reset()        
         self.index = index
         df         = self.list[self.list.index==index]
-        self.name, self.isin, self.ticker = np.array(df)[0]
+        self.name, self.isin, self.ticker, self.financial = np.array(df)[0]
         self._initialize_algo()
         
     def switch_next(self):
+        '''Switch to the next stock'''
         try:
             self.switch_index(self.index+1)
             self._update_tables()
             self._initialize_algo()
-            
         except IndexError:
-            pass
+            self.end = True            
 
     def _update_tables(self):
         self._get_keyratios()
-        self.get_quote()
+        self._read_stored_quotes()
         
     def update_time(self,day):
         '''This function resets the data such that only the data known at the 

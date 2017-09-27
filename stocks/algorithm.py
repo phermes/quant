@@ -65,7 +65,7 @@ class algo:
 
         if _val is None:
             self._add_result('PresentROE', '{0:0.1f}'.format(0), -1) 
-            self._error_message('PresentROE is of type None')            
+            self.error_message('PresentROE is of type None')            
             return
         
         if not (_val<20).any():
@@ -85,7 +85,7 @@ class algo:
         
         if _val is None:
             self._add_result('EBTMargin', '{0:0.1f}'.format(0),  -1)
-            self._error_message('EBTMargin is of type None')
+            self.error_message('EBTMargin is of type None')
             return
 
         if _val>12:
@@ -139,7 +139,21 @@ class algo:
         else:
             point = 0
         self._add_result('DividendGrowth', '{0:0.1f}'.format(_div_growth*100), point)  
-        
+       
+
+    def bookvalue_growth(self):
+        '''Check if bookvalue has been growing over ten years'''
+        _latest_bps   = self.keyratios['BookValuePerShare'][0:3].mean()
+        _previous_bps = self.keyratios['BookValuePerShare'][8:11].mean()
+        _bps_growth = (_latest_bps-_previous_bps)/(_previous_bps)
+
+        if _bps_growth<0.25:
+            point = -1
+        elif _bps_growth>1.0:
+            point = +1
+        else:
+            point = 0
+        self._add_result('BookValueGrowth', '{0:0.1f}'.format(_bps_growth*100), point)         
         
     def equityratio(self):
         '''Check the equity ratio. So far the limits correspond to non-financial assets.'''
@@ -156,7 +170,7 @@ class algo:
     def _no_fundamentals(self):
         '''Check if the fundmentals dataframe is empty'''
         if len(self.keyratios)==0:
-            self._error_message("No fundamentals found.")
+            self.error_message("No fundamentals found.")
             return True
         return False
     
@@ -166,6 +180,7 @@ class algo:
         
         self.positive_earnings()
         self.earnings_growth()
+        self.bookvalue_growth()
         self.historic_roe()
         self.present_roe()
         self.equityratio()
@@ -174,7 +189,7 @@ class algo:
         self.get_fair_price(conservative=conservative)
         self._get_all_pe()
         self.get_fair_price_from_pe()
-        
+
         self.summary = pd.DataFrame([[self.name, 
                                        self.isin,
                                        self.fairprice,
@@ -184,17 +199,28 @@ class algo:
                                      ]],columns=['Name','ISIN','FairPrice','FairPricePE', 'Price', 'Points'])
         
         if save:
+
             out_conn        = sqlite3.connect('output/algo_results.db')
+            self.log_message('Connected to sqlite database algo_results.db')
+            self.log_message('Removing old output')
+
+            c = out_conn.cursor() 
+            c.execute("DELETE FROM results where ISIN='{0}'".format(self.isin))
+            c.execute("DELETE FROM summary where ISIN='{0}'".format(self.isin))
+            out_conn.commit()
+            # c.close()
+            self.log_message('Adding new result')
             self.quant_result.to_sql('results',out_conn, if_exists='append',index=False)
-            
-            self.summary.to_sql('summary',out_conn, if_exists='append',index=False)
-        
-        self._log_message('Completed get_summary')
+            self.summary.to_sql('summary',out_conn, if_exists='append',     index=False)
+            out_conn.close()
+
+
+        self.log_message('Completed get_summary')
         
         
 # ratios related to stock price
 
-    def _fair_price(self,holdduration=10, interest=0.02, growth = None):
+    def _fair_price(self,holdduration=12, interest=0.02, growth = None):
         '''Calculate the lower and the upper bound '''
         
         last_eps = self.keyratios['EarningsPerShare'][0:3].mean()
@@ -213,23 +239,24 @@ class algo:
         return fairprice
 
     def get_fair_price(self, conservative=False):
-        _low_fair_price  = self._fair_price(holdduration=10,interest=0.02,growth=0.0)
-        _high_fair_price = self._fair_price(holdduration=10,interest=0.02,growth=None)    
+        _low_fair_price  = self._fair_price(holdduration=12,interest=0.02,growth=0.0)
+        _high_fair_price = self._fair_price(holdduration=12,interest=0.02,growth=None)    
         _current_price   = self.quote[self.quote.date==self.quote.date.max()]['close'].values[0]
         
         _fairprice       = np.array([_low_fair_price, _high_fair_price]).mean()
         if conservative:
             _fairprice       = _low_fair_price
 
-        
-        self.fairprice   = _fairprice
-        self.price       = _current_price
+        self.fairprice_low  = _low_fair_price
+        self.fairprice_high = _high_fair_price
+        self.fairprice      = _fairprice
+        self.price          = _current_price
 
     def get_fair_price_from_pe(self,quantile=0.5, marginofsafety=0.1):
         try:
             _pe_median   =  self.per_table['pe'].quantile(quantile)
         except TypeError:
-            self._error_message('Cant read pe from per_table, fairprice_pe set to 0')
+            self.error_message('Cant read pe from per_table, fairprice_pe set to 0')
             self.fairprice_pe = 0
             return
             

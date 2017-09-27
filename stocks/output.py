@@ -13,15 +13,19 @@ class logging:
     def _get_timestamp(self):
         ts = tt.time()
         return dt.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-    def _error_message(self,message):
+    def error_message(self,message):
         ts = self._get_timestamp()
         text_file = open("output/algo.err", "a")
-        text_file.write("{0}  {1}  {2:10s}\t{3}\n".format(ts, self.isin, self.name[0:10], message))
+        text_file.write("{0}  {1}  {2:14s}\t ERROR: {3}\n".format(ts, self.isin, self.name[0:13], message))
+        if self.verbose:
+            print("{0}  {1}  {2:14s}\t ERROR: {3}".format(ts, self.isin, self.name[0:13], message))        
         text_file.close()
-    def _log_message(self,message):
+    def log_message(self,message):
         ts = self._get_timestamp()
         text_file = open("output/algo.log", "a")
-        text_file.write("{0}  {1}  {2:10s}\t{3}\n".format(ts, self.isin, self.name[0:10], message))
+        text_file.write("{0}  {1}  {2:14s}\t{3}\n".format(ts, self.isin, self.name[0:13], message))
+        if self.verbose:
+            print("{0}  {1}  {2:14s}\t LOGMS: {3}".format(ts, self.isin, self.name[0:13], message))
         text_file.close()        
 
 
@@ -99,8 +103,27 @@ class plotting:
         plt.show()
         
     def interactive_summary(self):
-        trace1 = go.Scatter(x=self.quote['date'],     y=self.quote['close'],            name='Price')
-        trace2 = go.Scatter(x=self.keyratios['year'], y=self.keyratios['NetIncome'],    name='Net Income')
+        '''Show an interactive summary'''
+
+        if self.quote is not None:
+            trace1  = go.Scatter(x=self.quote['date'],     y=self.quote['close'],            name='Price')
+
+            fairprm = go.Scatter(
+                                    x=[self.quote['date'].min(),self.quote['date'].max()],
+                                    y=[self.fairprice, self.fairprice],
+                                    mode='lines',
+                                    name="Mean fair price")
+            fairprl = go.Scatter(
+                                    x=[self.quote['date'].min(),self.quote['date'].max()],
+                                    y=[self.fairprice_low, self.fairprice_low],
+                                    mode='lines',
+                                    name="Min. fair price")
+
+            
+
+        
+
+        netincome = go.Scatter(x=self.keyratios['year'], y=self.keyratios['NetIncome'],    name='Net Income')
         freecf = go.Scatter(x=self.keyratios['year'], y=self.keyratios['FreeCashFlow'], name='Free Cash Flow')
         trace6 = go.Scatter(x=self.keyratios['year'], 
                             y=self.keyratios['BookValuePerShare'], 
@@ -115,31 +138,35 @@ class plotting:
                                  y=self.keyratios['TotalStockholdersEquity'],
                                  name='Equity Ratio')
 
+        bookvalue  = go.Scatter(x=self.keyratios['year'], y=self.keyratios['BookValuePerShare'],    name='Book Value')
+        dividend   = go.Scatter(x=self.keyratios['year'], y=self.keyratios['Dividends'],    name='Dividend')
 
 
-        trace7 = go.Scatter(
-            x=self.per_table['date'],
-            y=self.per_table['pe'],
-            name='P/E ratio',
-            mode = 'markers'
-        )
 
-        trace7line = go.Scatter(
-                                x=[self.per_table['date'].min(),self.per_table['date'].max()],
-                                y=[self.per_table['pe'].median(),self.per_table['pe'].median()],
-                                mode='lines',
-                                name="Median P/E")
+        if self.per_table is not None:
+            trace7 = go.Scatter(
+                x=self.per_table['date'],
+                y=self.per_table['pe'],
+                name='P/E ratio',
+                mode = 'markers'
+            )
+
+            trace7line = go.Scatter(
+                                    x=[self.per_table['date'].min(),self.per_table['date'].max()],
+                                    y=[self.per_table['pe'].median(),self.per_table['pe'].median()],
+                                    mode='lines',
+                                    name="Median P/E")
 
 
-        trace8 = go.Histogram(
-            x=self.per_table['pe'],
-            nbinsx=200)
+            # trace8 = go.Histogram(
+            #     x=self.per_table['pe'],
+            #     nbinsx=200)
 
-        
-        trace8line = go.Scatter(y=[0,50],
-                                x=[self.per_table['pe'][0],self.per_table['pe'][0]],
-                                mode='lines',
-                                name="Current P/E")
+            
+            # trace8line = go.Scatter(y=[0,50],
+            #                         x=[self.per_table['pe'][0],self.per_table['pe'][0]],
+            #                         mode='lines',
+            #                         name="Current P/E")
 
 
 
@@ -155,7 +182,8 @@ class plotting:
 
 
         fig['layout']['xaxis1'].update(title='Date', showgrid=True)
-        fig['layout']['yaxis1'].update(title='Closing Price [{0}]'.format(self.quote['currency'][0]))
+        if self.quote is not None:
+            fig['layout']['yaxis1'].update(title='Closing Price [{0}]'.format(self.quote['currency'][0]))
 
         fig['layout']['xaxis2'].update(title='Year', showgrid=True)
         fig['layout']['yaxis2'].update(title='Net Income & Free Cashflow [Mio. {0}]'.format(self.keyratios['currency'][0]))
@@ -169,24 +197,37 @@ class plotting:
         fig['layout']['xaxis5'].update(title='Year', showgrid=True)
         fig['layout']['yaxis5'].update(title='P/E Ratio')
 
-        fig['layout']['xaxis6'].update(title='P/E Ratio', showgrid=True)
-        fig['layout']['yaxis6'].update(title='Abundance')
+        # fig['layout']['xaxis6'].update(title='P/E Ratio', showgrid=True)
+        # fig['layout']['yaxis6'].update(title='Abundance')
 
-        fig.append_trace(trace1, 1, 1)
+        fig['layout']['xaxis6'].update(title='Year', showgrid=True)
+        fig['layout']['yaxis6'].update(title='Book Value Per Share [{0}]'.format(self.keyratios['currency'][0]))      
 
-        fig.append_trace(trace2, 1, 2)
-        fig.append_trace(freecf, 1, 2)
+        fig['layout']['xaxis7'].update(title='Year', showgrid=True)
+        fig['layout']['yaxis7'].update(title='Dividend [{0}]'.format(self.keyratios['currency'][0]))          
 
-        fig.append_trace(trace7, 3, 1)
-        fig.append_trace(trace7line, 3, 1)
+        if self.quote is not None:
+            fig.append_trace(trace1, 1, 1)
+            fig.append_trace(fairprm, 1, 1)
+            fig.append_trace(fairprl, 1, 1)
+            # fig.append_trace(fairprh, 1, 1)
 
-        fig.append_trace(trace8, 3, 2)
-        fig.append_trace(trace8line, 3, 2)
+            fig.append_trace(trace7, 3, 1)
+            fig.append_trace(trace7line, 3, 1)
+            # fig.append_trace(trace8, 3, 2)
+            # fig.append_trace(trace8line, 3, 2)
+
+        # second plot [net income and free cash flow]
+        fig.append_trace(netincome, 1, 2)
+        fig.append_trace(freecf,    1, 2)
 
         fig.append_trace(roe, 2, 1)
         fig.append_trace(equityratio, 2, 1)
 
         fig.append_trace(ebtmargin, 2, 2)
+
+        fig.append_trace(bookvalue, 3,2)
+        fig.append_trace(dividend, 4,1)
 
         fig['data'][7].update(yaxis='y23')
 
