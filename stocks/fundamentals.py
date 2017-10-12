@@ -65,11 +65,12 @@ class fundamentals:
     def _get_all_pe(self,detailed=False):
         '''Creates an object with the price to earnings ratio for every day of all years'''
         
-        # check if the currencies are the same; otherwise return None
+        # check if the currencies are the same; otherwise abort
         _quotecur    = self.quote['currency'].unique()
         _keyratiocur = self.keyratios['currency'].unique()
         if _quotecur != _keyratiocur:
             self.error_message('Quote and keyratio table not of the same currency')
+            self.error_message('Cant populate per_table and per_cdf')            
             self.per_table = None
             self.per_cdf   = None
             return 
@@ -84,6 +85,14 @@ class fundamentals:
             else:
                 finalquote = finalquote.append(self._get_pe_for_year(year,detailed=detailed),ignore_index=True)
             year+=1
+
+        # finalize the dataframe
         self.per_table = finalquote
-        
+        self.per_table = self.per_table.sort_values('date',ascending=False)  # sort the table
+        self.per_table = self.per_table.reset_index(drop=True)               # reset the index
+
+        # get the present PER
+        self.per       = self.per_table.iloc[0]['pe']
+
+        # calculate the CDF
         self._get_per_cdf()

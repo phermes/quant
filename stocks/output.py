@@ -16,16 +16,18 @@ class logging:
     def error_message(self,message):
         ts = self._get_timestamp()
         text_file = open("output/algo.err", "a")
-        text_file.write("{0}  {1}  {2:14s}\t ERROR: {3}\n".format(ts, self.isin, self.name[0:13], message))
+        _output   = "{0}  {1}  {2:17s}|err|  {3}".format(ts, self.isin, self.name[0:18], message)
+        text_file.write(_output)
         if self.verbose:
-            print("{0}  {1}  {2:14s}\t ERROR: {3}".format(ts, self.isin, self.name[0:13], message))        
+            print(_output)        
         text_file.close()
     def log_message(self,message):
         ts = self._get_timestamp()
         text_file = open("output/algo.log", "a")
-        text_file.write("{0}  {1}  {2:14s}\t{3}\n".format(ts, self.isin, self.name[0:13], message))
+        _output   = "{0}  {1}  {2:17s}|log|  {3}".format(ts, self.isin, self.name[0:18], message)        
+        text_file.write(_output)
         if self.verbose:
-            print("{0}  {1}  {2:14s}\t LOGMS: {3}".format(ts, self.isin, self.name[0:13], message))
+            print(_output)
         text_file.close()        
 
 
@@ -106,7 +108,8 @@ class plotting:
         '''Show an interactive summary'''
 
         if self.quote is not None:
-            trace1  = go.Scatter(x=self.quote['date'],     y=self.quote['close'],            name='Price')
+            trace1  = go.Scatter(x=self.quote['date'],     y=self.quote['close'], 
+                mode = 'markers',           name='Price')
 
             fairprm = go.Scatter(
                                     x=[self.quote['date'].min(),self.quote['date'].max()],
