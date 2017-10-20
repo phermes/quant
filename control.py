@@ -29,6 +29,7 @@ parser.add_argument("-a", "--analyze", help="run the algo for all stocks", actio
 parser.add_argument("-c", "--check",   help="show summary for individual stock")
 parser.add_argument("-l", "--list",    help="list the top results from the analysis", action="store_true")
 parser.add_argument("-q", "--quote",   help="downloads historical quotes and adds it to the database")
+parser.add_argument("-Q", "--getquotes",   help="downloads historical quotes for the first 100 stocks in the summary list", action="store_true")
 parser.add_argument("--optimistic",    help="Use earnings growth estimates in the calculation of the fair price. compatible with --check", action="store_true")
 parser.add_argument("--noplot",   help="don't show the plot when performing --check", action="store_true")
 parser.add_argument("--verbose",   help="activate verbose mode", action="store_true")
@@ -41,6 +42,22 @@ args = parser.parse_args()
 
 # initialize the stock class
 s          = stock(verbose=args.verbose)
+
+
+if args.getquotes:
+    s.verbose=True
+    cnx        = sqlite3.connect('output/algo_results.db')
+    results    = pd.read_sql("SELECT * FROM summary;", cnx)
+    data = results
+    data = data.assign(NPVpS =(data['FairPrice']-data['Price']))
+    data = data.assign(Margin=(data['FairPrice']/data['Price'] -1 )*100)
+    data = data.sort_values(['Points','Margin'],ascending=[False, False])
+    data = data[0:100]
+    # print(data[['Name', 'ISIN', 'FairPrice', 'FairPricePE', 'Price', 'NPVpS', 'Margin', 'Points']])
+    for isin in data['ISIN']:
+        s.switch_isin(isin)
+        s.log_message("Downloading quotes for stock {0}".format(s.name))
+        s._download_quote_yahoo()
 
 
 if args.remove:

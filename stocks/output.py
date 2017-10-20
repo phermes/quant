@@ -24,11 +24,17 @@ class logging:
     def log_message(self,message):
         ts = self._get_timestamp()
         text_file = open("output/algo.log", "a")
-        _output   = "{0}  {1}  {2:17s}|log|  {3}".format(ts, self.isin, self.name[0:18], message)        
+        _output   = "{0}  {1}  {2:17s} |log|  {3}".format(ts, self.isin, self.name[0:18], message)        
         text_file.write(_output)
         if self.verbose:
             print(_output)
         text_file.close()        
+
+    def debug_message(self,message):
+        if not self.debug:
+            return
+        self.log_message(message)
+
 
 
 class plotting:

@@ -26,6 +26,11 @@ class quotes:
         self.lastquote = self.quote[self.quote.date==self.quote.date.max()].close.values
         self.quote_cur = self.quote.currency.values[0]
 
+    def _get_earlier_price(self,daysago):
+        '''Get the price in the past (in days)'''
+        self.lastquote = self.quote[self.quote.date==self.quote.date.max()].close.values
+        self.quote_cur = self.quote.currency.values[0]        
+
     def _find_splits(self, quote):
         '''Find historic splits from quote'''
 

@@ -41,6 +41,71 @@ class algo:
             point = 1 
         self._add_result('OnlyPositiveEarnings', 0, point)
         
+    def six_month_price_change(self):
+        '''Get change over six months'''
+        _dates         = self.quote['date']
+        latest_date    = self.quote[_dates == _dates.max()]
+        latest_date    = latest_date['date'].values[0]
+        latest_quote   = self.quote[self.quote['date'] == latest_date]['close'].values[0]
+        six_months_ago = [latest_date - dt.timedelta(days=d) for d in range(180,190)]   
+
+        # find the quote closest to six months ago
+        for d in six_months_ago:
+            try:
+                quote_six_months_ago = self.quote[self.quote['date'] == d]['close'].values[0]
+                break
+            except IndexError:
+                continue
+
+        # calculate the return
+        six_month_return = latest_quote/quote_six_months_ago
+        six_month_return = six_month_return -1
+        six_month_return = six_month_return*100
+
+        # write out the result
+        if (six_month_return>5.):
+            point = 1
+        elif (six_month_return<-5.):
+            point = -1
+        else:
+            point = 0
+
+        self.six_month_return = six_month_return
+            
+        self._add_result('SixMonthReturn', '{0:0.1f}'.format(six_month_return),  point)          
+
+    def twelve_month_price_change(self):
+        '''Get change over twelve months'''
+        _dates            = self.quote['date']
+        latest_date       = self.quote[_dates == _dates.max()]
+        latest_date       = latest_date['date'].values[0]
+        latest_quote      = self.quote[self.quote['date'] == latest_date]['close'].values[0]
+        twelve_months_ago = [latest_date - dt.timedelta(days=d) for d in range(360,370)]   
+
+        # find the quote closest to six months ago
+        for d in twelve_months_ago:
+            try:
+                quote_twelve_months_ago = self.quote[self.quote['date'] == d]['close'].values[0]
+                break
+            except IndexError:
+                continue
+
+        # calculate the return
+        twelve_month_return = latest_quote/quote_twelve_months_ago
+        twelve_month_return = twelve_month_return -1
+        twelve_month_return = twelve_month_return*100
+
+        # write out the result
+        if (twelve_month_return>5.):
+            point = 1
+        elif (twelve_month_return<-5.):
+            point = -1
+        else:
+            point = 0
+
+        self.twelve_month_return = twelve_month_return            
+        self._add_result('TwelveMonthReturn', '{0:0.1f}'.format(twelve_month_return),  point)    
+
     
     def historic_roe(self):
         '''Checks if the historic ROE was never below 20%'''
@@ -79,6 +144,24 @@ class algo:
             
         self._add_result('PresentROE', '{0:0.1f}'.format(_val), point)  
 
+    def present_RoIC(self):
+        '''Check if RoIC is >15%'''
+        _roic = self.keyratios['ReturnonInvestedCapital']
+        _val  = _roic[0]
+
+        if _val is None:
+            self._add_result('PresentRoIC', '{0:0.1f}'.format(0), -1) 
+            self.error_message('PresentRoIC is of type None')            
+            return
+        
+        if not (_val<15):
+            point = 1
+        elif not (_val<5):
+            point = 0
+        else:
+            point = -1
+            
+        self._add_result('PresentRoIC', '{0:0.1f}'.format(_val), point)  
         
     def present_ebtmargin(self):
         '''Check if EBT margin is above 12%'''
@@ -199,12 +282,15 @@ class algo:
         self.bookvalue_growth()
         self.historic_roe()
         self.present_roe()
+        self.present_RoIC()
         self.equityratio()
         self.present_ebtmargin()
         self.dividend_growth()
         self.get_fair_price(conservative=conservative)
         self._get_all_pe()
         self.get_fair_price_from_pe()
+        self.six_month_price_change()
+        self.twelve_month_price_change()
 
         self.summary = pd.DataFrame([[self.name, 
                                        self.isin,
