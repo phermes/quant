@@ -7,15 +7,53 @@ import plotly.graph_objs as go
 import datetime as dt
 import time as tt
 import pandas_datareader.data as web
-# import quandl as ql
 
-# from stocks.tools import get_datetime, convert_sql_date_to_datetime_date
 
 def get_datetime(inputobj):
     return dt.datetime.date(inputobj)
 
 def convert_sql_date_to_datetime_date(string):
     return dt.datetime.strptime(string,'%Y-%m-%d').date()
+
+
+class index_quote:
+    def __init__(self):
+
+        pass
+
+    def _download(self):
+        '''Downloads the quotes for all indices in the database'''
+
+        start = dt.datetime(1900, 1, 1)
+        end   = dt.datetime.today() 
+        import pandas_datareader.data as web
+
+        quotes = {}
+        load_successful = False
+        while True:
+            for i in range(1,6):           # try multiple times
+                try:
+                    quotes[self.ticker] = web.DataReader("{0}".format(self.ticker), 'yahoo', start, end)  # query
+                    load_successful = True
+                    # some output message when successful
+                    self.log_message('Successfully loaded index quote for {0} from yahoo'.format(self.ticker))
+                    break
+                except:
+                    self.log_message('Attempts to load {0} quote: {1}/5'.format(self.ticker,i))
+                    continue
+            # switch to the next ticker in list
+            try:
+                self.switch_next()
+            except StopIteration:
+                break
+
+        if not load_successful:
+            self.log_message("Could not find any quote")
+            return
+
+        self._downloaded_quotes = quotes
+
+
 
 class quotes:
     def __init__(self):
@@ -50,8 +88,7 @@ class quotes:
     
     def _read_stored_quotes(self):
         '''Load the quotes for the current stock from the database.'''
-        if self.verbose:
-            self.log_message("Reading saved quote for stock {0}".format(self.name))
+        self.log_message("Reading saved quote for stock {0}".format(self.name))
         cnx          = sqlite3.connect('database/stocks_quotes.db')
         quote_saved  = pd.read_sql_query("SELECT * FROM quotes WHERE ISIN = '{0}';".format(self.isin), cnx)
         cnx.close()
@@ -75,7 +112,7 @@ class quotes:
         
     def _yahoo_get_longest_quote(self,quotes): 
         '''Return the longest quote downloaded from yahoo with the different keys'''
-        self.log_message('Finding longest quote')
+        self.debug_message('Finding longest quote')
         longest_quote = max(quotes, key=lambda k: len(quotes[k]))
         return quotes[longest_quote], longest_quote
     
@@ -90,8 +127,7 @@ class quotes:
         self.quote_to_save.to_sql('quotes',cnx,if_exists='append',index=False)
         cnx.close()    
         
-        if self.verbose:
-            self.log_message("Successfully saved {0} entries in quote database".format(len(self.quote_to_save)))
+        self.log_message("Successfully saved {0} entries in quote database".format(len(self.quote_to_save)))
     
     def _extract_unsaved_rows(self):
         '''Identify the rows in the new '''
@@ -112,12 +148,12 @@ class quotes:
 
         self.quote_to_save = quote_to_save
 
-        self.log_message("currency of quote_to_save: {0}".format(self.quote_to_save['currency'].unique()))
-        self.log_message("currency of quote_saved  : {0}".format(self.quote_saved['currency'].unique()))
+        self.debug_message("currency of quote_to_save: {0}".format(self.quote_to_save['currency'].unique()))
+        self.debug_message("currency of quote_saved  : {0}".format(self.quote_saved['currency'].unique()))
 
         # check if the quote to save and saved quote have the same currency
         if len(self.quote_to_save)!=0 and len(self.quote_saved)!=0:
-            self.log_message("Compare currencies of saved and downloaded quote")
+            self.log_message("Comparing currencies of saved and downloaded quote")
             if self.quote_saved['currency'].unique() != self.quote_to_save['currency'].unique():
                 self.log_message("Cannot save new quote, wrong currency compared to saved quote")
                 self.quote_to_save=None
@@ -236,7 +272,7 @@ class quotes:
 
         self.quote_yahoo_raw       = longest_quote                                       # raw quote
         self.quote_currency        = _currency                                           # currency of the quote
-        self.quote_exchange        = "Y {0}{1}".format(ticker,longest_key)                                         
+        self.quote_exchange        = "Y {0}{1}".format(ticker,longest_key)
         self._prepare_raw_quote_for_saving(self.quote_yahoo_raw)
-        
         self._save_in_sql()
+

@@ -28,12 +28,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-a", "--analyze", help="run the algo for all stocks", action="store_true")
 parser.add_argument("-c", "--check",   help="show summary for individual stock")
 parser.add_argument("-l", "--list",    help="list the top results from the analysis", action="store_true")
-parser.add_argument("-q", "--quote",   help="downloads historical quotes and adds it to the database")
+parser.add_argument("-q", "--quote",   help="downloads historical quotes and quarterly report dates and adds them to the database")
 parser.add_argument("-Q", "--getquotes",   help="downloads historical quotes for the first 100 stocks in the summary list", action="store_true")
+parser.add_argument("-r", "--remove",    help="remove quote for stock with given ISIN")
+
+
+parser.add_argument("--start",   help="start task with the stock in argument")
+parser.add_argument("--debug",   help="activate debugging mode", action="store_true")
 parser.add_argument("--optimistic",    help="Use earnings growth estimates in the calculation of the fair price. compatible with --check", action="store_true")
 parser.add_argument("--noplot",   help="don't show the plot when performing --check", action="store_true")
 parser.add_argument("--verbose",   help="activate verbose mode", action="store_true")
-parser.add_argument("-r", "--remove",    help="remove quote for stock with given ISIN")
 
 args = parser.parse_args()
 
@@ -41,7 +45,7 @@ args = parser.parse_args()
 
 
 # initialize the stock class
-s          = stock(verbose=args.verbose)
+s          = stock(verbose=args.verbose, debug=args.debug)
 
 
 if args.getquotes:
@@ -76,6 +80,7 @@ if args.quote:
     s.switch_isin(args.quote)
     s.log_message("Downloading quotes for stock {0}".format(s.name))
     s._download_quote_yahoo()
+    s._save_unsaved_quarterly_report_dates()
 
 
 if args.list:
@@ -93,7 +98,19 @@ if args.list:
 
 
 if args.analyze:
-    print("analyzing...")
+    print("Analyzing all stocks...")
+    if args.start:
+        s.switch_isin(args.start)
+
+    while True:
+        try:
+            s._download_quote_yahoo()
+            s._save_unsaved_quarterly_report_dates()
+            s.get_summary(save=True)
+            s.analyze_quote()      
+        except:
+            pass
+        s.switch_next()        
 
 if args.check:
     s.switch_isin(args.check)

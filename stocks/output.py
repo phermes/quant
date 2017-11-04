@@ -14,26 +14,44 @@ class logging:
         ts = tt.time()
         return dt.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     def error_message(self,message):
+        
         ts = self._get_timestamp()
         text_file = open("output/algo.err", "a")
-        _output   = "{0}  {1}  {2:17s}|err|  {3}".format(ts, self.isin, self.name[0:18], message)
+
+        isin_ticker = self._get_isin_ticker()
+
+        _output      = "{0}  {1:12s}  {2:17s}|err|  {3}".format(ts, isin_ticker, self.name[0:17], message)
+        
         text_file.write(_output)
+        
         if self.verbose:
             print(_output)        
+        
         text_file.close()
-    def log_message(self,message):
+
+    def log_message(self,message,logtype='|log|'):
         ts = self._get_timestamp()
         text_file = open("output/algo.log", "a")
-        _output   = "{0}  {1}  {2:17s} |log|  {3}".format(ts, self.isin, self.name[0:18], message)        
+
+        isin_ticker = self._get_isin_ticker()
+
+        _output   = "{0}  {1:12s}  {2:17s} {3}  {4}".format(ts, isin_ticker, self.name[0:17], logtype, message)        
         text_file.write(_output)
         if self.verbose:
             print(_output)
         text_file.close()        
 
+    def _get_isin_ticker(self):
+        if self._type == "index":
+            isin_ticker = self.ticker
+        else:
+            isin_ticker = self.isin
+        return isin_ticker
+
     def debug_message(self,message):
         if not self.debug:
             return
-        self.log_message(message)
+        self.log_message(message,logtype='|deb|')
 
 
 

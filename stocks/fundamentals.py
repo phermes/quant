@@ -41,7 +41,7 @@ class fundamentals:
 
         quote = quote.assign(pe=(quote.close/eps).values)
         quote = quote.assign(eps=np.ones(len(quote))*eps)
-
+        
         if detailed:
             return quote
         return quote[['date','close','pe', 'eps']]
