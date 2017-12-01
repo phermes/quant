@@ -18,9 +18,7 @@ def convert_sql_date_to_datetime_date(string):
 
 class index_quote:
     def __init__(self):
-
         pass
-
     def _download(self):
         '''Downloads the quotes for all indices in the database'''
 
@@ -29,30 +27,130 @@ class index_quote:
         import pandas_datareader.data as web
 
         quotes = {}
-        load_successful = False
         while True:
+            load_successful = False
+            
             for i in range(1,6):           # try multiple times
                 try:
-                    quotes[self.ticker] = web.DataReader("{0}".format(self.ticker), 'yahoo', start, end)  # query
-                    load_successful = True
+                # if True:
+                    quote_df            = web.DataReader("{0}".format(self.ticker), 'yahoo', start, end)  # query
+                    quote_df            = self._prepare_downloaded_quotes_for_saving(quote_df)
+                    quotes[self.ticker] = pd.DataFrame(quote_df)
+                    load_successful     = True
+
                     # some output message when successful
                     self.log_message('Successfully loaded index quote for {0} from yahoo'.format(self.ticker))
                     break
                 except:
-                    self.log_message('Attempts to load {0} quote: {1}/5'.format(self.ticker,i))
+                    self.debug_message('Attempts to load {0} quote: {1}/5'.format(self.ticker,i))
                     continue
+
+
+            if not load_successful:
+                self.log_message("Quote {0} could not be downloaded".format(self.ticker))
+                try:
+                   self.switch_next()
+                except StopIteration:
+                    break
+                continue
+
+            # save the quote in sql database
+            self.debug_message("Finding quotes to save")
+            try:
+                quote_to_save = self._extract_unsaved_rows(self.quote_saved[self.ticker], quote_df)
+            except (KeyError, AttributeError):
+                quote_to_save = quote_df
+
+            self.debug_message("Saving {0} line in sql database".format(len(quote_to_save)))
+            cnx         = sqlite3.connect(self._path_to_sql_file)
+            quote_to_save.to_sql('indices',cnx,if_exists='append',index=False)
+            cnx.close()    
+
             # switch to the next ticker in list
             try:
                 self.switch_next()
             except StopIteration:
                 break
+            # break
 
-        if not load_successful:
-            self.log_message("Could not find any quote")
-            return
 
-        self._downloaded_quotes = quotes
+ 
 
+
+    def _prepare_downloaded_quotes_for_saving(self,quote_df):
+        '''Prepare the downloaded quotes for saving
+           
+           - Fills up missing columns with zeros
+           - Adds new columns including the index name and ticker symbol
+        '''
+
+        if 'Date' not in quote_df.index:
+            quote_df.reset_index(level=0, inplace=True)
+
+        # find columns which are not in the dataframe and replace them with zeros
+        self.debug_message("Assigning Columns")        
+        for _col in ['Date','Open','High','Low','Close','Volume']:
+            if _col not in quote_df.columns:
+                quote_df = quote_df.assign(**{_col:pd.Series(np.zeros(len(quote_df))).values})
+                
+        # add columns with the name and ticker of the stock
+        self.debug_message("_prepare_downloaded_quotes_for_saving: Assigning name and ticker columns")
+        quote_df = quote_df.assign(name   = pd.Series([self.name   for _ in range(len(quote_df))]))
+        quote_df = quote_df.assign(ticker = pd.Series([self.ticker for _ in range(len(quote_df))]))
+
+        # # re-order the elements
+        quote_df = quote_df[['Date','name','ticker','Open','High','Low','Close','Volume']]
+        
+        # # re-name the elements
+        quote_df.columns = ['date','name','ticker','open', 'high','low','close','volume']
+        
+        # # put date in the correct format
+        quote_df['date'] = quote_df['date'].apply(get_datetime)
+        
+        # # Remove NaN entries
+        quote_df = quote_df.dropna(thresh=6)
+        
+        return quote_df
+        # # produce the saveable object
+        # self._extract_unsaved_rows()
+
+    def _read_stored_quotes(self):
+
+        self._path_to_sql_file = "database/stocks_quotes.db"
+
+        '''Load the quotes for the current stock from the database.'''
+
+        self.debug_message("Reading saved quote for all indices")
+        # load from the database
+        cnx          = sqlite3.connect(self._path_to_sql_file)
+        quote_saved  = pd.read_sql_query("SELECT * FROM indices;", cnx)
+        quote_saved['date'] = quote_saved.date.apply(convert_sql_date_to_datetime_date)
+        cnx.close()
+
+        self.debug_message("Found {0} quotes in database".format(len(quote_saved)))
+        self.debug_message("Splitting quote_saved into dictionary")
+
+        quote_saved_dict = {}
+        for k in np.unique(quote_saved['ticker']):
+            quote_saved_dict[k] = quote_saved[quote_saved['ticker']==k]
+
+        self.quote_saved = quote_saved_dict
+
+    def _extract_unsaved_rows(self, saved, downloaded):
+        '''Identify the rows in the downloaded quote df that shall be saved.'''
+
+        # compare the dates between downloaded and saved dates
+        s1  = saved['date']
+        s2  = downloaded['date']
+        
+        # dates for which a quote has not yet been saved in the database
+        newdates    = np.setdiff1d(s2.values,s1.values)
+
+        # extract the lines to save
+        quote_to_save = downloaded[downloaded['date'].isin(newdates)]
+
+        self.debug_message("Found {0} quotes to save".format(len(quote_to_save)))
+        return quote_to_save
 
 
 class quotes:
@@ -71,7 +169,6 @@ class quotes:
 
     def _find_splits(self, quote):
         '''Find historic splits from quote'''
-
         relchange   = quote['Close'].diff()/quote['Close']
         splits      = (relchange[relchange<-0.5]*(-1)+ 1).round()
 

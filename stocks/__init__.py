@@ -17,6 +17,8 @@ from stocks.data_downloader import quarterly_report
 # classes and methods for indices
 from stocks.quotes import index_quote
 
+from stocks.risk import get_returns_var_vola
+
 
 class time:
     '''Make the analysis for today a special case of backtesting'''
@@ -73,8 +75,8 @@ class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report):
         df         = self.list[self.list['isin']==isin]
         self.index = df.index[0]
         self.name, self.isin, self.ticker, self.branch, self.benchmark, self._fn_link = np.array(df)[0]
-        self.log_message("Switched to new stock: {0}".format(self.name))
-        self.log_message("ISIN & Ticker:         {0}, {1}".format(self.isin, self.ticker))
+        self.debug_message("Switched to new stock: {0}".format(self.name))
+        self.debug_message("ISIN & Ticker:         {0}, {1}".format(self.isin, self.ticker))
         self._update_tables()
         self._initialize_algo()
         
@@ -93,11 +95,19 @@ class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report):
             self._update_tables()
             self._initialize_algo()
         except IndexError:
+            self.switch_index(self.index-1)
+            self._update_tables()
+            self._initialize_algo()            
             self.end = True            
 
     def _update_tables(self):
         self._get_keyratios()
-        self._read_stored_quotes()
+        try:
+            self._read_stored_quotes()
+        except:
+            return
+        if len(self.quote)>0:
+            self.volatility = get_returns_var_vola(self.quote, 30)
         
     def update_time(self,day):
         '''This function resets the data such that only the data known at the 
@@ -119,7 +129,13 @@ class Index(logging,index_quote):
         # initialize with the first index in list
         self._list_generator = self.list.iterrows()
         self.switch_next()
-        
+
+        # get the quotes
+        try:
+            self._read_stored_quotes()
+        except:
+            pass
+
     def switch_next(self):
         row = next(self._list_generator)[1]    
         self.name, self.country, self.ticker = row['name'], row['country'], row['ticker']        
