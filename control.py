@@ -13,6 +13,7 @@ import datetime as dt
 import time as tt
 from stocks import stock
 from stocks.output import logging, plotting
+from stocks import Index
 
 
 
@@ -28,9 +29,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-a", "--analyze", help="run the algo for all stocks", action="store_true")
 parser.add_argument("-c", "--check",   help="show summary for individual stock")
 parser.add_argument("-l", "--list",    help="list the top results from the analysis", action="store_true")
-parser.add_argument("-q", "--quote",   help="downloads historical quotes and quarterly report dates and adds them to the database")
+parser.add_argument("-q", "--quote",   help="downloads historical quotes, quarterly report dates and stock index quotes and adds them to the database")
 parser.add_argument("-Q", "--getquotes",   help="downloads historical quotes for the first 100 stocks in the summary list", action="store_true")
 parser.add_argument("-r", "--remove",    help="remove quote for stock with given ISIN")
+parser.add_argument("-k", "--keyratios", help='download the keyratios from morningstar and save them in a database')
 
 
 parser.add_argument("--start",   help="start task with the stock in argument")
@@ -44,11 +46,19 @@ args = parser.parse_args()
 
 
 
-# initialize the stock class
+# initialize the stock and index classes
 s          = stock(verbose=args.verbose, debug=args.debug)
+i          = Index(verbose=args.verbose, debug=args.debug)
 
+
+if args.keyratios:
+    while True:
+        s.load_keyratios(deletecsv=True)
+        s.switch_next()
 
 if args.getquotes:
+    i._download()  # download quote for indices
+    
     s.verbose=True
     cnx        = sqlite3.connect('output/algo_results.db')
     results    = pd.read_sql("SELECT * FROM summary;", cnx)
@@ -76,6 +86,9 @@ if args.remove:
     cnx.close()
 
 if args.quote:
+
+    i._download()  # download quote for indices
+
     s.verbose=True
     s.switch_isin(args.quote)
     s.log_message("Downloading quotes for stock {0}".format(s.name))
@@ -102,7 +115,7 @@ if args.analyze:
     if args.start:
         s.switch_isin(args.start)
 
-    while True:
+    while not s.end:
         try:
             s._download_quote_yahoo()
             s._save_unsaved_quarterly_report_dates()
@@ -110,7 +123,8 @@ if args.analyze:
             s.analyze_quote()      
         except:
             pass
-        s.switch_next()        
+        s.switch_next()     
+    s.log_message("Analysis completed")   
 
 if args.check:
     s.switch_isin(args.check)
