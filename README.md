@@ -1,4 +1,4 @@
-# quant
+# Q-AnT
 ## Installation
 ### Prerequisites
 
@@ -9,7 +9,12 @@ conda install -c anaconda pandas-datareader
 conda install -c anaconda beautifulsoup4 
 ```
 
-   
+## Usage
+Advanced examples are shown in `manual.ipynb`. The Q-AnT module can be loaded by importing the basic classes stock and Index from Q-AnT:
+```python
+from Q-Ant import stock, Index
+
+```
    
    
    
