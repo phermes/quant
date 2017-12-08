@@ -1,4 +1,10 @@
 # quant
+## Installation
+### Prerequesites
+
+   conda install plotly
+   conda install -c anaconda pandas-datareader
+   conda install -c anaconda beautifulsoup4 
 
 
 ## Further implementation strategy
