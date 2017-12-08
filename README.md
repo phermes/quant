@@ -1,6 +1,6 @@
 # quant
 ## Installation
-### Prerequesites
+### Prerequisites
 
 
 ```python
