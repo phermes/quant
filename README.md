@@ -1,4 +1,23 @@
-# quant
+# Q-AnT
+## Installation
+### Prerequisites
+
+
+```python
+conda install plotly
+conda install -c anaconda pandas-datareader
+conda install -c anaconda beautifulsoup4 
+```
+
+## Usage
+Advanced examples are shown in `manual.ipynb`. The Q-AnT module can be loaded by importing the basic classes stock and Index from Q-AnT:
+```python
+from Q-Ant import stock, Index
+
+```
+   
+   
+   
 
 
 ## Installation
@@ -10,8 +29,6 @@
 
 ## Further implementation strategy
 
-- Include a class which downloads the latest keyratio table from morningstar
-- Implement functions to extend the present database by the new entries
 - Monitor the expected income of each stock to identifiy if it was revised
 - Complete the managing of index quotes
 - New class for currencies
@@ -27,3 +44,9 @@
 - GLAXOSMITHKLINE   LS-,25
 - FREENET
 - BLACKROCK
+
+- Implement class for currencies
+- Classify stocks by sectors
+- Save all transactions in a database (like blockchain)
+- Weight attractiveness of new stocks denpending on if the sector is already represented in the portfolio   
+
