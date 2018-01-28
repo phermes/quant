@@ -57,7 +57,7 @@ class index_quote:
             # save the quote in sql database
             self.debug_message("Finding quotes to save")
             try:
-                quote_to_save = self._extract_unsaved_rows(self.quote_saved[self.ticker], quote_df)
+                quote_to_save = self._extract_unsaved_rows(self._quote_saved[self.ticker], quote_df)
             except (KeyError, AttributeError):
                 quote_to_save = quote_df
 
@@ -134,7 +134,7 @@ class index_quote:
         for k in np.unique(quote_saved['ticker']):
             quote_saved_dict[k] = quote_saved[quote_saved['ticker']==k]
 
-        self.quote_saved = quote_saved_dict
+        self._quote_saved = quote_saved_dict
 
     def _extract_unsaved_rows(self, saved, downloaded):
         '''Identify the rows in the downloaded quote df that shall be saved.'''
@@ -197,7 +197,7 @@ class quotes:
         # convert date strings to datetime objects
         quote_saved['date'] = quote_saved.date.apply(convert_sql_date_to_datetime_date)
         
-        self.quote_saved = quote_saved
+        self._quote_saved = quote_saved
         self.quote       = quote_saved
 
     def _calculate_volatility(self):
@@ -238,7 +238,7 @@ class quotes:
         
         # compare the dates between downloaded and saved dates
         s1       = self.quote_downloaded['date']
-        s2       = self.quote_saved['date']
+        s2       = self._quote_saved['date']
         newdates = pd.Series(np.setdiff1d(s1.values,s2.values))
         newdates = newdates.values
 
@@ -250,19 +250,19 @@ class quotes:
         self.quote_to_save = quote_to_save
 
         self.debug_message("Currency of quote_to_save: {0}".format(self.quote_to_save['currency'].unique()))
-        self.debug_message("Currency of quote_saved  : {0}".format(self.quote_saved['currency'].unique()))
+        self.debug_message("Currency of quote_saved  : {0}".format(self._quote_saved['currency'].unique()))
 
         # check if the quote to save and saved quote have the same currency
-        if len(self.quote_to_save)!=0 and len(self.quote_saved)!=0:
+        if len(self.quote_to_save)!=0 and len(self._quote_saved)!=0:
             self.debug_message("Comparing currencies of saved and downloaded quote")
-            if self.quote_saved['currency'].unique() != self.quote_to_save['currency'].unique():
+            if self._quote_saved['currency'].unique() != self.quote_to_save['currency'].unique():
                 self.log_message("Cannot save new quote, wrong currency compared to saved quote")
                 self.quote_to_save=None
             else: 
                 self.debug_message("Saved quote and quote to save have the same currency: {0}".format(self.quote_to_save['currency'].unique()))
-        elif len(self.quote_to_save)==0 and len(self.quote_saved)!=0:
+        elif len(self.quote_to_save)==0 and len(self._quote_saved)!=0:
             self.log_message("Nothing to save")
-        elif len(self.quote_to_save)!=0 and len(self.quote_saved)==0:    
+        elif len(self.quote_to_save)!=0 and len(self._quote_saved)==0:    
             self.log_message("No quote saved, adding new entry")
     
     def _prepare_raw_quote_for_saving(self,raw_quote):
@@ -303,7 +303,7 @@ class quotes:
         # produce the saveable object
         self._extract_unsaved_rows()
         
-    def _download_quote_yahoo(self,useexchange='old'):
+    def _download_quote_yahoo(self,useexchange='old',force_exchange=None,attempts=6):
         '''Download the latest stock quote from yahoo finance'''
         ISIN, ticker = self.isin, self.ticker
         self.log_message("Donwloading quote with ticker symbol {0}".format(self.ticker))
@@ -320,17 +320,24 @@ class quotes:
         self.log_message("Found the following unit of the key ratios: {0}".format(_currency))
 
         exchange = {}
-        exchange['EUR'] = ['.VI','.DE', '.F', '.SG','.BE','.DU','.HM','.HA','.MU','.PA']
+        exchange['EUR'] = ['.VI','.DE', '.F', '.SG','.BE','.DU','.HM','.HA','.MU','.PA','.MC']
         exchange['USD'] = ['']
         exchange['CHF'] = ['.VX','.SW']
         exchange['GBP'] = ['.L','.IL']
 
 
-        if useexchange=='old' and len(self.quote_saved)>0:
+        if (useexchange=='old' and len(self._quote_saved)>0): 
+            exchange = {}           
+            ex       =  self._quote_saved['exchange'].values[0].split()[-1].split('.')[-1]
+            cur      =  self._quote_saved['currency'].values[0]
+            if '.' in self._quote_saved['exchange'].values[0].split()[-1]:       
+                exchange[cur] = [".{0}".format(ex)] 
+            else:
+                exchange[cur] = ['']
+
+        if force_exchange is not None:
             exchange = {}
-            ex       =  self.quote_saved['exchange'].values[0].split()[-1].split('.')[-1]
-            cur      =  self.quote_saved['currency'].values[0]
-            exchange[cur] = [".{0}".format(ex)] 
+            exchange[_currency] = [force_exchange]
 
 
         # assign the start and end date
@@ -345,7 +352,7 @@ class quotes:
         quotes = {}
         load_successful = False
         for ex in exchange[_currency]:     # loop over all exchanges for the given currency
-            for i in range(1,6):           # try multiple times
+            for i in range(1,attempts):           # try multiple times
                 try:
                     quotes[ex] = web.DataReader("{0}{1}".format(ticker,ex), 'yahoo', start, end)  # query
                     load_successful = True

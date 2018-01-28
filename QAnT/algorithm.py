@@ -289,8 +289,8 @@ class algo:
         self.get_fair_price(conservative=conservative)
         self._get_all_pe()
         self.get_fair_price_from_pe()
-        self.six_month_price_change()
-        self.twelve_month_price_change()
+        # self.six_month_price_change()
+        # self.twelve_month_price_change()
 
         self.summary = pd.DataFrame([[self.name, 
                                        self.isin,

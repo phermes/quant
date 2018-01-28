@@ -41,3 +41,22 @@ def get_returns_var_vola(quote, timestep):
         n+=1
     output = pd.DataFrame(output, columns=['date','return','var','vola'])
     return output
+
+
+def _assign_colnames(stock_object):
+    '''Helper function to assign the colnames for merge_quotes'''
+    df   = stock_object.quote
+    name = df['name'][0][0:6]
+    df   = df[['date','close']]    
+    df   = df.assign(dailyreturn=df['close'].diff()/df['close'][1:])
+    df.columns = ['date','{0}'.format(name), 'return_{0}'.format(name)]   
+    df = df[['date','return_{0}'.format(name)]] 
+    return df
+
+def merge_quotes(*args):
+    '''Merge multiple quote dataframes to allow studies of correlation and outperformance'''
+    newdf = _assign_colnames(args[0])
+    for k in range(1,len(args)):
+        dftoadd = _assign_colnames(args[k])
+        newdf = pd.merge(newdf, dftoadd, how='inner',on='date')
+    return newdf
