@@ -24,7 +24,7 @@ class keyratios:
 
 		country = {}
 		country['AU'] = 'AUS'
-		for c in ['DE', 'BE', 'ES', 'NL', 'IE', 'GR', 'US', 'FR','CA','TH']:
+		for c in ['DE', 'BE', 'ES', 'NL', 'IE', 'GR', 'US', 'FR','CA','TH','IL', 'LU']:
 			country[c] = 'DEU'
 		country['CH'] = 'CH'
 		country['GB'] = 'GB'
@@ -48,6 +48,9 @@ class keyratios:
 		    print('File existing: {0}'.format(outfile))
 		    return
 
+		saved = self.keyratios
+		self.log_message("Found {0} keyratios".format(len(saved)))
+
 		basestr = 'http://financials.morningstar.com/ajax/exportKR2CSV.html?'
 		weblink = '{0}t={1}&region={2}&culture=en_US'.format(basestr,ticker,region)
 
@@ -55,8 +58,12 @@ class keyratios:
 		    html = response.read()
 
 		if len(html)>0:
-		    self.log_message('Writing output to {0}'.format(outfile))
+		    self.debug_message('Writing output to {0}'.format(outfile))
 		self.log_message('Name: {0:20s}   |   {1:20s}'.format(self.name, str(html).split('\\n')[0].split("for")[-1]))
+
+		if self._control:
+			_ = input("Press Enter to continue...")
+
 
 		with open(outfile,'wb') as f:
 		    f.write(html)
@@ -95,7 +102,7 @@ class keyratios:
 		downl = self.downloaded_keyratios
 		saved = self.keyratios
 
-		self.debug_message("Found saved and downloaded keyratio tables with sizes {0} and {1}".format(len(downl), len(saved)))
+		self.log_message("Found saved and downloaded keyratio tables with sizes {0} and {1}".format(len(downl), len(saved)))
 
 		yrsaved = saved['year'].values
 		yrdownl = downl['year'].values

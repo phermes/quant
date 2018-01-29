@@ -38,24 +38,40 @@ class time:
 
         self.keyratios = self.keyratios[self.keyratios['year'] < _max_keyratio_year]
 
-class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report, download_keyratios):
+
+class searchtools:
+    def __init__(self):
+        pass
+    def find_by_name(self,*args):
+        """Find stocks by their name. 
+        Usage:
+            s = stocks()
+            s.find_by_name('DAIMLER', 'BAY', 'COCA')   """
+        outstr  = "|".join(args)
+        results = self.list[self.list['name'].str.contains(outstr)]
+        return results
+
+
+class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report, download_keyratios, searchtools):
     '''Base class to handle stocks'''
 
-    def __init__(self,verbose=False,isin=None,debug=False):
+    def __init__(self,verbose=False,isin=None,debug=False,control=False):
         self.get_stocklist()          # load the list of stocks from the database
-        self._initialize_algo()       # set all parameters of the algorithm to the default value
-        self.verbose = verbose
-        self.debug   = debug
-        self.end     = False    
-        self.isin    = isin
-        self._type   = "stock"
+        # self._initialize_algo()       # set all parameters of the algorithm to the default value
+        self._control = control       # boolean to specify if stock class is called from the control script
+        self.verbose  = verbose       # activate verbose mode
+        self.debug    = debug         # debug mode
+        self._end     = False         # boolean specifying if we are at the end of the list 
+        self.isin     = isin          # Stock isin
+        self._type    = "stock"       # type of financial product analyzed
 
+                                      # select starting point
         if self.isin is None:
-            self.switch_index(0)          # select starting point
+            self.switch_index(0)          
         else:
             self.switch_isin(self.isin)
 
-        self._update_tables()             # initialize the tables
+        # self._update_tables()         # initialize the tables
 
     def get_stocklist(self):
         '''Load the stock list from the database'''
@@ -67,7 +83,7 @@ class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report, dow
         '''Reset variables except verbose, end, list and debug'''
         dic = vars(self)
         for i in dic.keys():
-            if i in ['verbose', 'end', 'list', 'debug']:
+            if i in ['verbose', 'end', 'list', 'debug', 'control']:
                 continue
             dic[i] = None
         
@@ -77,8 +93,8 @@ class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report, dow
         df         = self.list[self.list['isin']==isin]
         self.index = df.index[0]
         self.name, self.isin, self.ticker, self._ticker_ms, self.branch, self.benchmark, self._fn_link = np.array(df)[0]
-        self.debug_message("Switched to new stock: {0}".format(self.name))
-        self.debug_message("ISIN & Ticker:         {0}, {1}".format(self.isin, self.ticker))
+        self.debug_message("New stock selected - {0}".format(self.name))
+        self.debug_message("ISIN & Ticker:       {0}, {1}".format(self.isin, self.ticker))
         self._update_tables()
         self._initialize_algo()
         
@@ -100,7 +116,7 @@ class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report, dow
             self.switch_index(self.index-1)
             self._update_tables()
             self._initialize_algo()            
-            self.end = True            
+            self._end = True            
 
     def _update_tables(self):
         self._get_keyratios()
@@ -116,6 +132,10 @@ class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report, dow
         selected moment in time is available. '''
         self._update_tables()        
         self._assign_pointintime(day)
+
+
+
+
 
 
 class Index(logging,index_quote):
@@ -152,58 +172,3 @@ class Index(logging,index_quote):
         cnx        = sqlite3.connect('database/stocks_main.db')
         xetra      = pd.read_sql("SELECT name, country, ticker FROM indices;", cnx)
         self.list  = xetra 
-
-        
-
-    # def get_stocklist(self):
-    #     '''Load the stock list from the database'''
-    #     cnx        = sqlite3.connect('database/stocks_main.db')
-    #     xetra      = pd.read_sql("SELECT name, isin, ticker_YF,branch, finanzen_net FROM xetra;", cnx)
-    #     self.list  = xetra 
-
-    # def reset(self):
-    #     '''Reset variables except verbose, end, list and debug'''
-    #     dic = vars(self)
-    #     for i in dic.keys():
-    #         if i in ['verbose', 'end', 'list', 'debug']:
-    #             continue
-    #         dic[i] = None
-        
-    # def switch_isin(self,isin):
-    #     '''Switch to a stock based on the ISIN'''
-    #     self.reset()
-    #     df         = self.list[self.list['isin']==isin]
-    #     self.index = df.index[0]
-    #     self.name, self.isin, self.ticker, self.branch, self._fn_link = np.array(df)[0]
-    #     self.log_message("Switched to new stock: {0}".format(self.name))
-    #     self.log_message("ISIN & Ticker:         {0}, {1}".format(self.isin, self.ticker))
-    #     self._update_tables()
-    #     self._initialize_algo()
-        
-    # def switch_index(self,index):
-    #     '''Switch to stock based on the index'''
-    #     self.reset()        
-    #     self.index = index
-    #     df         = self.list[self.list.index==index]
-    #     self.name, self.isin, self.ticker, self.branch, self._fn_link = np.array(df)[0]
-    #     self._initialize_algo()
-        
-    # def switch_next(self):
-    #     '''Switch to the next stock'''
-    #     try:
-    #         self.switch_index(self.index+1)
-    #         self._update_tables()
-    #         self._initialize_algo()
-    #     except IndexError:
-    #         self.end = True            
-
-    # def _update_tables(self):
-    #     self._get_keyratios()
-    #     self._read_stored_quotes()
-        
-    # def update_time(self,day):
-    #     '''This function resets the data such that only the data known at the 
-    #     selected moment in time is available. '''
-    #     self._update_tables()        
-    #     self._assign_pointintime(day)
-
