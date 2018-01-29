@@ -33,7 +33,7 @@ class keyratios:
 
 		weblink = 'http://financials.morningstar.com/ajax/exportKR2CSV.html?t=FB'
 
-		ticker  = self.ticker_ms
+		ticker  = self._ticker_ms
 		region  = country[self.isin[0:2]]
 		prefix  = self.isin[0:2]
 
@@ -86,7 +86,7 @@ class keyratios:
 		self._save_keyratios()
 
 		if deletecsv:
-			ticker  = self.ticker_ms
+			ticker  = self._ticker_ms
 			prefix  = self.isin[0:2]
 
 			outfile = 'tmpfiles/{0}_{1}.csv'.format(prefix,ticker)

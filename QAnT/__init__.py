@@ -6,6 +6,7 @@ import plotly
 import plotly.graph_objs as go
 import datetime as dt
 import time as tt
+import os
 
 from QAnT.quotes import quotes
 from QAnT.fundamentals import fundamentals
@@ -39,6 +40,12 @@ class time:
         self.keyratios = self.keyratios[self.keyratios['year'] < _max_keyratio_year]
 
 
+class checks:
+    def _perform_initialization_checks(self):
+        for directory in ["output/"]:
+            if not os.path.isdir(directory):
+                os.makedirs(directory)
+
 class searchtools:
     def __init__(self):
         pass
@@ -52,7 +59,7 @@ class searchtools:
         return results
 
 
-class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report, download_keyratios, searchtools):
+class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report, download_keyratios, searchtools, checks):
     '''Base class to handle stocks'''
 
     def __init__(self,verbose=False,isin=None,debug=False,control=False):
@@ -65,6 +72,8 @@ class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report, dow
         self.isin     = isin          # Stock isin
         self._type    = "stock"       # type of financial product analyzed
 
+        # create sub-directories required for the operation 
+        self._perform_initialization_checks()
                                       # select starting point
         if self.isin is None:
             self.switch_index(0)          
@@ -103,7 +112,7 @@ class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report, dow
         self.reset()        
         self.index = index
         df         = self.list[self.list.index==index]
-        self.name, self.isin, self.ticker, self.ticker_ms, self.branch, self.benchmark, self._fn_link = np.array(df)[0]
+        self.name, self.isin, self.ticker, self._ticker_ms, self.branch, self.benchmark, self._fn_link = np.array(df)[0]
         self._initialize_algo()
         
     def switch_next(self):
