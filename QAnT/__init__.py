@@ -11,6 +11,7 @@ from QAnT.data_downloader import quarterly_report
 from QAnT.fundamentals import fundamentals
 from QAnT.fundamentals import fundamentals
 from QAnT.output import logging, plotting
+
 # classes and methods for indices
 from QAnT.quotes import index_quote
 from QAnT.quotes import quotes
@@ -81,15 +82,6 @@ class stock(quotes, fundamentals, algo, time, logging, plotting, quarterly_repor
     """
 
     def __init__(self, verbose=False, isin=None, debug=False, control=False):
-        self.get_stocklist()  # load the list of stocks from the database
-        self._initialize_algo()  # set all parameters of the algorithm to the default value
-        self._control = control  # boolean to specify if stock class is called from the control script
-        self.verbose = verbose  # activate verbose mode
-        self.debug = debug  # debug mode
-        self._end = False  # boolean specifying if we are at the end of the list
-        self.isin = isin  # Stock isin
-        self._type = "stock"  # type of financial product analyzed
-
         #  TOM : inits were outside __init__ scope - updated to include them in __init__
         self.list = pd.DataFrame()  # init with empty dataframe
         self.index = 0
@@ -100,6 +92,15 @@ class stock(quotes, fundamentals, algo, time, logging, plotting, quarterly_repor
         self.branch = None
         self.benchmark = None
         self._fn_link = None
+
+        self.get_stocklist()  # load the list of stocks from the database
+        self._initialize_algo()  # set all parameters of the algorithm to the default value
+        self._control = control  # boolean to specify if stock class is called from the control script
+        self.verbose = verbose  # activate verbose mode
+        self.debug = debug  # debug mode
+        self._end = False  # boolean specifying if we are at the end of the list
+        self.isin = isin  # Stock isin
+        self._type = "stock"  # type of financial product analyzed
 
         # create sub-directories required for the operation
         # -> checks class
@@ -229,10 +230,17 @@ class Index(logging, index_quote):
     Base class to handle indices
     """
 
-    def __init__(self, ticker=None, verbose=False, debug=False):
+    # TOM : removed ticker - not used
+    def __init__(self, verbose=False, debug=False):
         self.verbose = verbose
         self.debug = debug
         self._type = "index"
+
+        # TOM : were not initialized in __init__
+        self.name = None
+        self.country = None
+        self.ticker = None
+        self.index = None
 
         self._get_indexlist()
 
@@ -242,21 +250,37 @@ class Index(logging, index_quote):
 
         # get the quotes
         try:
+            # TOM : quotes.py -> class: index_quote
             self._read_stored_quotes()
         except:
+            # TOM : maybe do some extra handling or print message?
             pass
 
     def switch_next(self):
+        """
+        switch to next index in the database
+        """
+
         row = next(self._list_generator)[1]
+
         self.name, self.country, self.ticker = row['name'], row['country'], row['ticker']
 
     def switch_to_ticker(self, ticker):
+        """
+        Switch to ticker symbol
+        :param ticker:
+        """
+
         df = self.list[self.list['ticker'] == ticker]
+
         self.index = df.index[0]
         self.name, self.country, self.ticker = np.array(df)[0]
 
     def _get_indexlist(self):
-        '''Load the stock list from the database'''
+        """
+        Load the stock list from the database
+        """
+
         cnx = sqlite3.connect(databasedir + 'database/stocks_main.db')
         xetra = pd.read_sql("SELECT name, country, ticker FROM indices;", cnx)
         self.list = xetra
