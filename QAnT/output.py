@@ -7,8 +7,10 @@ import plotly.graph_objs as go
 import datetime as dt
 import time as tt
 
+from QAnT import stock
 
-class logging:
+# TOM : needed to add stock to avoid unresolved references and to be able to do a super().__init__() in datadownloader
+class logging(stock):
     '''Error handling for the algoritm'''
     def _get_timestamp(self):
         ts = tt.time()
@@ -16,7 +18,7 @@ class logging:
     def error_message(self,message):
         
         ts = self._get_timestamp()
-        text_file = open("output/algo.err", "a")
+        text_file = open("/Users/tommertens/PycharmProjects/quant/output/algo.err", "a")
 
         isin_ticker = self._get_isin_ticker()
 
@@ -31,15 +33,15 @@ class logging:
 
     def log_message(self,message,logtype='|log|'):
         ts = self._get_timestamp()
-        text_file = open("output/algo.log", "a")
+        text_file = open("/Users/tommertens/PycharmProjects/quant/output/algo.log", "a")
 
         isin_ticker = self._get_isin_ticker()
 
-        _output   = "{0}  {1:12s}  {2:17s} {3}  {4}".format(ts, isin_ticker, self.name[0:17], logtype, message)        
-        text_file.write(_output + "\n")
-        if self.verbose:
-            print(_output)
-        text_file.close()        
+        #_output   = "{0}  {1:12s}  {2:17s} {3}  {4}".format(ts, isin_ticker, self.name[0:17], logtype, message)
+        #text_file.write(_output + "\n")
+        #if self.verbose:
+        #    print(_output)
+        text_file.close()
 
     def _get_isin_ticker(self):
         if self._type == "index":
