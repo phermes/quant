@@ -4,10 +4,12 @@ import sqlite3
 import numpy as np
 import pandas as pd
 
+from QAnT import stock
+
 
 # TOM : optimized imports
 
-class algo:
+class algo(stock):
     """
     Class providing asset analysis tools
     """
@@ -122,10 +124,11 @@ class algo:
             except IndexError:
                 continue
 
+        # TOM: tricky as in principle quote_six_months_ago can be referenced without being defined !!!
         # calculate the return
         six_month_return = latest_quote / quote_six_months_ago
-        six_month_return = six_month_return - 1
-        six_month_return = six_month_return * 100
+        six_month_return = six_month_return - 1.
+        six_month_return = six_month_return * 100.
 
         # write out the result
         if six_month_return > 5.:
@@ -158,6 +161,7 @@ class algo:
             except IndexError:
                 continue
 
+        # TOM: tricky as quote_twelve_months_ago can be referenced without being assigned
         # calculate the return
         twelve_month_return = latest_quote / quote_twelve_months_ago
         twelve_month_return = twelve_month_return - 1.  # TOM : added . otherwise if else expects comparison with int
