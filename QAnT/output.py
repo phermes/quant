@@ -260,3 +260,246 @@ class plotting:
 
         fig['layout'].update(height=2200, width=1800, title='Stock {0}, ISIN {1}'.format(self.name,self.isin))
         plotly.offline.plot(fig)
+
+
+import plotly.graph_objs as go
+from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+init_notebook_mode(connected=True)
+
+def plot_key_quantities(s):
+
+    ab = {}
+
+    for name in ['EarningsPerShare','FreeCashFlowPerShare','Dividends']:
+        ab[name] = go.Scatter(x=s.keyratios['year'],
+                              y=s.keyratios[name],
+                              name=name)
+
+    for name in ['NetIncome','OperatingCashFlow', 'OperatingIncome','FreeCashFlow']:#, 'WorkingCapital']:
+        ab[name] = go.Scatter(x=s.keyratios['year'],
+                              y=s.keyratios[name],
+                              visible=False,
+                              name=name)
+
+    for name in ['EBTMargin','NetMargin','GrossMargin']:#, 'WorkingCapital']:
+        ab[name] = go.Scatter(x=s.keyratios['year'],
+                              y=s.keyratios[name],
+                              visible=False,
+                              name=name)
+
+    for name in ['ReturnonEquity','ReturnonInvestedCapital','ReturnonAssets']:
+        ab[name] = go.Scatter(x=s.keyratios['year'],
+                              y=s.keyratios[name],
+                              visible=False,
+                              name=name)
+
+    order = ['EarningsPerShare','FreeCashFlowPerShare','Dividends', 
+             'NetIncome','OperatingCashFlow', 'OperatingIncome','FreeCashFlow',
+             'EBTMargin','NetMargin','GrossMargin',
+             'ReturnonEquity','ReturnonInvestedCapital','ReturnonAssets']
+
+    data = [ab[d] for d in order]
+
+    layout = go.Layout(
+        width=1000,
+        height=600,
+        autosize=True,
+        xaxis={'title':'Year'}
+    )
+
+    updatemenus=list([
+        dict(
+    #         active=-1,
+            buttons=list([   
+                dict(
+                    args=[{'visible': [False, False, False, 
+                                       True,True,True,True,
+                                       False, False, False,
+                                       False,False,False]}],
+                    label='CashFlow',
+                    method='update'
+                ),
+                dict(
+                    args=[{'visible': [False, False, False, 
+                                       False,False,False,False,
+                                       True, True, True,
+                                       False,False,False]},'type', 'scatter'],
+                    label='Margins',
+                    method='update'
+                ) ,
+                dict(
+                    args=[{'visible': [
+                                       False,False,False,False,
+                                       False,False,False,
+                                       False,False,False,
+                                       True, True, True ]},'type', 'scatter'],
+                    label='Return',
+                    method='update'
+                )    ,
+                dict(
+                    args=[{'visible': [True, True, True, 
+                                       False,False,False,False,
+                                       False,False,False,
+                                       False,False,False,
+                                       ]},'type', 'scatter'],
+                    label='Per Share',
+                    method='update'
+                )                  
+            ]),
+            direction = 'left',
+            pad = {'r': 10, 't': 10},
+            showactive = True,
+            type = 'buttons',
+            x = 0.1,
+            xanchor = 'left',
+            y = 1.1,
+            yanchor = 'top' 
+        ),
+    ])
+
+
+    layout['updatemenus'] = updatemenus
+
+    fig = dict(data=data, layout=layout)
+    iplot(fig)
+
+
+def keyratio_comparison(s,variable,nbins=3500):
+    
+    '''
+    available options
+    ['EBTMargin','NetMargin','GrossMargin',
+            'ReturnonEquity','ReturnonInvestedCapital','ReturnonAssets']'''
+
+    import plotly.graph_objs as go
+    from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+    init_notebook_mode(connected=True)
+
+    cnx             = sqlite3.connect('database/stocks_keyratios.db')
+    allfund         = pd.read_sql_query("SELECT * FROM fundamentals;", cnx)
+    cnx.close()    
+
+    order = ['EBTMargin','NetMargin','GrossMargin','ReturnonEquity','ReturnonInvestedCapital','ReturnonAssets','TotalStockholdersEquity']
+    
+    alldata = allfund[order]
+    alldata = alldata.replace('', np.nan)
+    alldata = alldata.dropna()
+    
+    currentroe      = s.keyratios.iloc[0][variable]
+    hist, bin_edges = np.histogram(alldata[variable], 
+                                   normed=True,bins=nbins)
+
+    histogram = go.Histogram(x=alldata[variable], nbinsx=nbins, name=variable,
+                             histnorm='probability')
+
+    cdf = go.Scatter(x=bin_edges[1:], y=np.cumsum(hist)/np.sum(hist),yaxis='y2',name='Integral')
+
+    line= go.Scatter(x=[currentroe,currentroe], 
+                     y=[-1.,2.], yaxis='y2',hoverinfo='none',name=s.name[0:10])
+
+    data = [histogram,cdf,line]
+    layout = go.Layout(
+        xaxis=dict(range=[-50,100],
+                   title=variable),
+        yaxis=dict(
+                   title='Abundance'
+        ),
+        yaxis2=dict(
+            range=[0,1],
+            title='Integral',
+            titlefont=dict(
+                color='rgb(148, 103, 189)'
+            ),
+            tickfont=dict(
+                color='rgb(148, 103, 189)'
+            ),
+            overlaying='y',
+            side='right'
+        )
+    )
+
+    fig = go.Figure(data=data, layout=layout)
+    iplot(fig)
+
+
+def print_keyratio_summary(s):
+    from IPython.display import display
+
+    krsummary = s.keyratios[['year','currency','TotalStockholdersEquity','ReturnonEquity',
+                         'Revenue','NetIncome','EarningsPerShare',
+                         'Dividends','BookValuePerShare','EBTMargin']]
+    krsummary.columns = ['year','currency','Equity','RoE','Revenue','NetIncome','EPS','Div','BookVal','EBTMargin']
+    display(krsummary)
+
+
+def global_comparison(s,year = None):
+    from plotly import tools
+
+    
+
+    cnx             = sqlite3.connect('database/stocks_keyratios.db')
+    allfund         = pd.read_sql_query("SELECT * FROM fundamentals;", cnx)
+    cnx.close()    
+
+    order = ['year','name','EBTMargin','NetMargin','GrossMargin',
+             'ReturnonEquity','ReturnonInvestedCapital','ReturnonAssets','TotalStockholdersEquity']
+
+    alldata = allfund[order]
+    alldata = alldata.replace('', np.nan)
+    alldata = alldata.dropna()
+
+    stockdata = s.keyratios
+
+
+    lenall      = len(alldata)
+    if year is not None:
+        stockdata = stockdata[stockdata['year']==year]
+        alldata   = alldata[alldata['year']==year]
+    lenfiltered = len(alldata)
+
+
+    trace      = []
+    currentval = []
+    quantile   = []
+
+
+    fig = tools.make_subplots(rows=2, cols=2, subplot_titles=('Return on Equity', 'EBT Margin',
+                                                              'Equity', 'RoIC'));
+    fig['layout']['xaxis1'].update(range=[-50, 100])
+    fig['layout']['xaxis2'].update(range=[-50, 100])
+    fig['layout']['xaxis3'].update(range=[-50, 100])
+    fig['layout']['xaxis4'].update(range=[-50, 100])
+    fig['layout']['width']  = 950
+    fig['layout']['height'] = 700
+
+
+    bins  = np.array([2000,2000,500,2000])*(lenfiltered/lenall)
+    bins  = [int(b) for b in bins]
+
+    names = ['RoE','EBT Margin', 'Equity', 'RoIC']
+
+    for i, name in enumerate(['ReturnonEquity', 'EBTMargin', 'TotalStockholdersEquity', 'ReturnonInvestedCapital']):
+        hist, bin_edges = np.histogram(alldata[name], normed=True, bins=bins[i])
+        trace.append(go.Scatter(x=bin_edges[1:], 
+                                y=hist/hist.max(),
+                                name="Universe {0}".format(names[i]), hoverinfo=name))
+        xval = s.keyratios.iloc[0][name]
+        currentval.append(go.Scatter(x=[xval,xval],y=[-1,2],name="Stock {0}".format(names[i])))  
+        quantile.append(go.Scatter(x=bin_edges[1:], y=np.cumsum(hist)/np.sum(hist),
+                                   name='Quantile {0}'.format(names[i])))
+        fig['layout']['yaxis{0}'.format(i+1)].update(range=[0,1])
+        
+    for lst in [trace,currentval,quantile]:
+        fig.append_trace(lst[0], 1, 1)
+        fig.append_trace(lst[1], 1, 2)
+        fig.append_trace(lst[2], 2, 1)
+        fig.append_trace(lst[3], 2, 2)
+
+    if year is not None:
+        fig['layout'].update(title='Only considered year {0}'.format(year))
+    else:
+        fig['layout'].update(title='All years')    
+    fig['layout'].update(showlegend=False)
+    # return fig
+
+    iplot(fig)

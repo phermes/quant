@@ -277,10 +277,6 @@ class keyratios:
 		# return df
 
 
-
-
-
-
 class quarterly_report:
 	def __init__(self):
 		pass

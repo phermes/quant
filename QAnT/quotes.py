@@ -130,11 +130,16 @@ class index_quote:
         self.debug_message("Found {0} quotes in database".format(len(quote_saved)))
         self.debug_message("Splitting quote_saved into dictionary")
 
+        # populate the quote_saved dictionary
         quote_saved_dict = {}
         for k in np.unique(quote_saved['ticker']):
             quote_saved_dict[k] = quote_saved[quote_saved['ticker']==k]
+            # calculate absolute and relative return
+            quote_saved_dict[k]['retabs'] = quote_saved_dict[k]['close'].diff()
+            quote_saved_dict[k]['retrel'] = quote_saved_dict[k]['retabs']/quote_saved_dict[k]['close'].shift(1)
 
         self._quote_saved = quote_saved_dict
+        self.quote        = self._quote_saved
 
     def _extract_unsaved_rows(self, saved, downloaded):
         '''Identify the rows in the downloaded quote df that shall be saved.'''
@@ -192,11 +197,16 @@ class quotes:
         quote_saved  = pd.read_sql_query("SELECT * FROM quotes WHERE ISIN = '{0}';".format(self.isin), cnx)
         cnx.close()
 
-        self.log_message("Found {0} quotes".format(len(quote_saved)))
+        self.debug_message("Found {0} quotes".format(len(quote_saved)))
         
         # convert date strings to datetime objects
         quote_saved['date'] = quote_saved.date.apply(convert_sql_date_to_datetime_date)
-        
+
+        # calculate absolute and relative return
+        self.debug_message("Assigning return columns to self.quote and self._quote_saved")
+        quote_saved['retabs'] = quote_saved['close'].diff()
+        quote_saved['retrel'] = quote_saved['retabs']/quote_saved['close'].shift(1)
+
         self._quote_saved = quote_saved
         self.quote       = quote_saved
 
@@ -303,7 +313,7 @@ class quotes:
         # produce the saveable object
         self._extract_unsaved_rows()
         
-    def _download_quote_yahoo(self,useexchange='old',force_exchange=None,attempts=6):
+    def _download_quote_yahoo(self,useexchange='old', force_call=None, force_exchange=None, force_currency=None, attempts=6):
         '''Download the latest stock quote from yahoo finance'''
         ISIN, ticker = self.isin, self.ticker
         self.log_message("Donwloading quote with ticker symbol {0}".format(self.ticker))
@@ -335,10 +345,12 @@ class quotes:
             else:
                 exchange[cur] = ['']
 
-        if force_exchange is not None:
-            exchange = {}
-            exchange[_currency] = [force_exchange]
 
+        if force_currency is not None:
+            _currency = force_currency
+
+        if force_exchange is not None:
+            exchange = {_currency : [force_exchange]}
 
         # assign the start and end date
         start = dt.datetime(1900, 1, 1)
@@ -354,15 +366,18 @@ class quotes:
         for ex in exchange[_currency]:     # loop over all exchanges for the given currency
             for i in range(1,attempts):           # try multiple times
                 try:
-                    quotes[ex] = web.DataReader("{0}{1}".format(ticker,ex), 'yahoo', start, end)  # query
+                    call = "{0}{1}".format(ticker,ex)
+                    if force_call is not None:
+                        call = force_call
+                    quotes[ex] = web.DataReader(call, 'yahoo', start, end)  # query
                     load_successful = True
                     # some output message when successful
                     if verbose:
-                        self.log_message('Successfully loaded quote for {0} from yahoo, exchange {1}'.format(ticker,ex))
+                        self.log_message('Successfully loaded quote from yahoo with call {0}'.format(call))
                     break
                 except:
                     if verbose:
-                        self.log_message('Attempts to load {0} quote: {1}/5'.format("{0}{1}".format(ticker,ex),i))
+                        self.log_message('Performed {0} attempts to load quote with call {1}'.format(i,call))
                     continue
 
         if not load_successful:

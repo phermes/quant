@@ -19,8 +19,7 @@ from QAnT.data_downloader import keyratios as download_keyratios
 
 # classes and methods for indices
 from QAnT.quotes import index_quote
-
-from QAnT.risk import get_returns_var_vola
+from QAnT.risk   import risk
 
 
 class time:
@@ -59,7 +58,7 @@ class searchtools:
         return results
 
 
-class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report, download_keyratios, searchtools, checks):
+class stock(quotes, fundamentals, algo, time, logging, plotting, quarterly_report, download_keyratios, searchtools, checks, risk):
     '''Base class to handle stocks'''
 
     def __init__(self,verbose=False,isin=None,debug=False,control=False):
@@ -79,7 +78,10 @@ class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report, dow
             self.switch_index(0)          
         else:
             self.switch_isin(self.isin)
-
+        
+        self._update_tables()
+        self._initialize_algo()
+        
         # self._update_tables()         # initialize the tables
 
     def get_stocklist(self):
@@ -133,8 +135,10 @@ class stock(quotes,fundamentals,algo,time,logging,plotting,quarterly_report, dow
             self._read_stored_quotes()
         except:
             return
-        if len(self.quote)>0:
-            self.volatility = get_returns_var_vola(self.quote, 30)
+
+        # calculate value at risk if we have enough data 
+        if len(self.quote)>100:
+            self.get_value_at_risk()
         
     def update_time(self,day):
         '''This function resets the data such that only the data known at the 

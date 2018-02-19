@@ -107,7 +107,7 @@ class algo:
         self._add_result('TwelveMonthReturn', '{0:0.1f}'.format(twelve_month_return),  point)    
 
     
-    def historic_roe(self):
+    def _get_historic_roe(self):
         '''Checks if the historic ROE was never below 20%'''
         _roe = self.keyratios['ReturnonEquity'][1:]
         _roe = _roe[_roe>0]
@@ -192,11 +192,13 @@ class algo:
         # check if mean_earnings_old not zero, to prevent ZeroDivisionError
         try:
             _mean_growth_all = (mean_earnings_new-mean_earnings_old)/mean_earnings_old
+            _mean_growth_pa  = ( 1 + _mean_growth_all)**(1./8.)
+            _mean_growth_pa  = _mean_growth_pa -1
+
         except ZeroDivisionError:
             _mean_growth_all = -0.99
-            
-        _mean_growth_pa  = (1+_mean_growth_all)**(1./8.) 
-        _mean_growth_pa  = _mean_growth_pa -1
+            _mean_growth_pa  = -0.99
+
         
         if type(_mean_growth_pa) is complex:
             _mean_growth_pa = _mean_growth_all/8.
@@ -219,9 +221,9 @@ class algo:
         _previous_div = self.keyratios['Dividends'][8:11].mean()
         _div_growth = (_latest_div-_previous_div)/(_previous_div)
 
-        self.log_message("Checking dividend growth")
-        self.log_message("Latest dividend {0}".format(_latest_div))
-        self.log_message("Previous dividend {0}".format(_previous_div))
+        self.debug_message("Checking dividend growth")
+        self.debug_message("Latest dividend {0}".format(_latest_div))
+        self.debug_message("Previous dividend {0}".format(_previous_div))
 
         if _div_growth<0.25:
             point = -1
@@ -280,7 +282,7 @@ class algo:
         self.positive_earnings()
         self.earnings_growth()
         self.bookvalue_growth()
-        self.historic_roe()
+        # self.historic_roe()
         self.present_roe()
         self.present_RoIC()
         self.equityratio()
@@ -356,8 +358,8 @@ class algo:
     def get_fair_price_from_pe(self,quantile=0.5, marginofsafety=0.1):
         '''Get the fair price from the price/earnings ratios'''
         try:
-            self.log_message("Calculating fair price from P/E ratio")
-            self.log_message("Selected quantile: {0}".format(quantile))
+            self.debug_message("Calculating fair price from P/E ratio")
+            self.debug_message("Selected quantile: {0}".format(quantile))
             _pe_median   =  self.per_table['pe'].quantile(quantile)
         except TypeError:
             self.error_message('Cant read pe from per_table, fairprice_pe set to 0')
