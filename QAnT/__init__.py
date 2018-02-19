@@ -38,27 +38,7 @@ class time:
 
         self.keyratios = self.keyratios[self.keyratios['year'] < _max_keyratio_year]
 
-
-class checks:
-    def _perform_initialization_checks(self):
-        for directory in ["output/"]:
-            if not os.path.isdir(directory):
-                os.makedirs(directory)
-
-class searchtools:
-    def __init__(self):
-        pass
-    def find_by_name(self,*args):
-        """Find stocks by their name. 
-        Usage:
-            s = stocks()
-            s.find_by_name('DAIMLER', 'BAY', 'COCA')   """
-        outstr  = "|".join(args)
-        results = self.list[self.list['name'].str.contains(outstr)]
-        return results
-
-
-class stock(quotes, fundamentals, algo, time, logging, plotting, quarterly_report, download_keyratios, searchtools, checks, risk):
+class stock(quotes, fundamentals, algo, time, logging, plotting, quarterly_report, download_keyratios, risk):
     '''Base class to handle stocks'''
 
     def __init__(self,verbose=False,isin=None,debug=False,control=False):
@@ -73,7 +53,8 @@ class stock(quotes, fundamentals, algo, time, logging, plotting, quarterly_repor
 
         # create sub-directories required for the operation 
         self._perform_initialization_checks()
-                                      # select starting point
+
+        # select starting point
         if self.isin is None:
             self.switch_index(0)          
         else:
@@ -83,6 +64,11 @@ class stock(quotes, fundamentals, algo, time, logging, plotting, quarterly_repor
         self._initialize_algo()
         
         # self._update_tables()         # initialize the tables
+
+    def _perform_initialization_checks(self):
+        for directory in ["output/"]:
+            if not os.path.isdir(directory):
+                os.makedirs(directory)
 
     def get_stocklist(self):
         '''Load the stock list from the database'''
@@ -146,9 +132,14 @@ class stock(quotes, fundamentals, algo, time, logging, plotting, quarterly_repor
         self._update_tables()        
         self._assign_pointintime(day)
 
-
-
-
+    def find_by_name(self,*args):
+        """Find stocks by their name.
+        Usage:
+            s = stocks()
+            s.find_by_name('DAIMLER', 'BAY', 'COCA')   """
+        outstr  = "|".join(args)
+        results = self.list[self.list['name'].str.contains(outstr)]
+        return results
 
 
 class Index(logging,index_quote):
