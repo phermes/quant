@@ -15,7 +15,7 @@ class fundamentals:
         pass
 
     def _get_keyratios(self):
-        # load the entries for the current stock from the database
+        '''Load keyratios for the current stock from the database'''
         cnx         = sqlite3.connect('database/stocks_keyratios.db')
         sql         = pd.read_sql_query("SELECT * FROM fundamentals WHERE ISIN = '{0}';".format(self.isin), cnx)
         cnx.close()    
