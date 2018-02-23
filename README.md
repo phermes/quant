@@ -18,6 +18,18 @@ from Q-Ant import stock, Index
    
    
    
+## Variables
+
+```
+
+    stock.mean_return : the mean daily return of this stock based on
+        historic price information
+
+    stock.volatility : the standard deviation of the daily return based on historic
+        price information
+        
+```   
+   
 
 
 ## Installation
