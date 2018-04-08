@@ -185,8 +185,9 @@ class quotes:
     
     def _read_stored_quotes(self):
         '''Load the quotes for the current stock from the database.'''
+        print('reading stored quotes')
         self.log_message("Reading saved quote for stock {0}".format(self.name))
-        cnx          = sqlite3.connect('database/stocks_quotes.db')
+        cnx          = sqlite3.connect('/Users/tommertens/PycharmProjects/quant/database/stocks_quotes.db')
         quote_saved  = pd.read_sql_query("SELECT * FROM quotes WHERE ISIN = '{0}';".format(self.isin), cnx)
         cnx.close()
         
@@ -195,6 +196,7 @@ class quotes:
         
         self.quote_saved = quote_saved
         self.quote       = quote_saved
+        print(self.quote)
 
     def _calculate_volatility(self):
         '''Calculate the daily and yearly volatility of the stock'''

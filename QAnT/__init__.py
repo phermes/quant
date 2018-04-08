@@ -5,7 +5,7 @@ import sqlite3
 import numpy as np
 import pandas as pd
 
-from QAnT.algorithm import algo
+# from QAnT.algorithm import algo
 from QAnT.data_downloader import keyratios as download_keyratios
 from QAnT.data_downloader import quarterly_report
 from QAnT.fundamentals import fundamentals
@@ -82,16 +82,17 @@ class stock(quotes, fundamentals, algo, time, logging, plotting, quarterly_repor
     """
 
     def __init__(self, verbose=False, isin=None, debug=False, control=False):
+        super().__init__()
         #  TOM : inits were outside __init__ scope - updated to include them in __init__
         self.list = pd.DataFrame()  # init with empty dataframe
-        self.index = 0
-        self.name = None
-        self.isin = None
-        self.ticker = None
-        self._ticker_ms = None
-        self.branch = None
-        self.benchmark = None
-        self._fn_link = None
+        # self.index = 0
+        # self.name = None
+        # self.isin = None
+        # self.ticker = None
+        # self._ticker_ms = None
+        # self.branch = None
+        # self.benchmark = None
+        # self._fn_link = None
 
         self.get_stocklist()  # load the list of stocks from the database
         self._initialize_algo()  # set all parameters of the algorithm to the default value

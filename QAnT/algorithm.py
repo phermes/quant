@@ -281,6 +281,7 @@ class algo(stock):
             _mean_growth_all = -0.99
 
         # TOM : this formula I do not completely understand - you will need to explain :)
+        # continuous compounding over 8 years 1 / 8 to get annual growth
         _mean_growth_pa = (1 + _mean_growth_all) ** (1. / 8.)
         _mean_growth_pa = _mean_growth_pa - 1
 

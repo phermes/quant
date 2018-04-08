@@ -16,28 +16,28 @@ from QAnT.quotes import convert_sql_date_to_datetime_date
 # TOM : general location databases
 databasedir = '/Users/tommertens/PycharmProjects/quant/'
 
+
 # TOM : added logging to avoid unresolved references to debug and logging messages
 class keyratios(logging):
     def __init__(self):
-        # TOM variables that are not initialize
+        # TOM variables that are not initialized
         # init from super class - not so clear where everything comes from - difficult to debug
         super().__init__()
-
-
 
     def _download_keyratios_to_file(self):
         """
         Method to download the keyratios to a temporary directory
         """
 
-        cnx = sqlite3.connect(databasedir + 'database/stockDB.db')
+        # TOM : not used
+        # cnx = sqlite3.connect(databasedir + 'database/stockDB.db')
 
         # TOM : not used
         # currencies = pd.read_sql("SELECT * FROM currencies", cnx)
 
-        country = {}
+        # TOM: define as literal
+        country = {'AU': 'AUS'}
 
-        country['AU'] = 'AUS'
         for c in ['DE', 'BE', 'ES', 'NL', 'IE', 'GR', 'US', 'FR', 'CA', 'TH', 'IL', 'LU']:
             country[c] = 'DEU'
 
@@ -322,6 +322,7 @@ class keyratios(logging):
         self.downloaded_keyratios = df
 
         # return df
+
 
 # TOM : added logging and stock to solve unresolved references
 class quarterly_report(logging, stock):
