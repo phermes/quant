@@ -8,6 +8,7 @@ from QAntTom import np
 from QAntTom import get_datetime
 
 from pandas.tseries.offsets import Week, MonthOffset, YearOffset
+import pandas_datareader.data as web
 
 import logging
 
@@ -75,7 +76,7 @@ class Quotes:
 
     def find_splits(self):
         """
-        Find hirostic splits from quote
+        Find historic splits from quote
         :param quote: stock quote
         :return:
         """
@@ -227,6 +228,7 @@ class Quotes:
         self._extract_unsaved_rows()
 
     def _download_quote_yahoo(self, useexchange='old', force_exchange=None, attempts=6):
+        # TODO : clean up and add methods from morningstar
         """
         Download the latest stock quote from yahoo finance
         :param useexchange:
@@ -236,7 +238,7 @@ class Quotes:
         """
 
         ISIN, ticker = self.isin, self.ticker
-        # self.log_message("Donwloading quote with ticker symbol {0}".format(self.ticker))
+        # self.log_message("Downloading quote with ticker symbol {0}".format(self.ticker))
         # if self.branch is not None:
         #     self.log_message("Found different ticker symbol for yahoo finance")
         #     self.log_message("Morningstar: {0}, Yahoo: {1}".format(self.ticker, self.branch))
